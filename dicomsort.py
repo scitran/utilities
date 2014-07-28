@@ -1,4 +1,27 @@
 #!/usr/bin/env python
+# author:  Gunnar Schaefer
+"""
+Organize a mess of dicoms by exam and series.
+
+This is non-destructive regardless of the operation.
+
+Example
+-------
+
+sort ./mess/of/dicoms into ./sort/path, and creates tarfiles of each in ./tar/path
+
+.. code-block::bash
+
+    dicomsort.py tarsort ./mess/of/dicoms ./sort/path ./tar/path
+
+
+get usage help
+
+.. code-example:bash
+
+    $ dicomsort.py -h
+
+"""
 
 import os
 import json

@@ -1,0 +1,31 @@
+# NIMS Scripts
+Miscellaneous scripts.
+
+---
+
+
+### dicomsort.py
+
+Organize a mess of dicoms into exams/series.
+
+    dicomsort.py tarsort ./mess/of/dicoms ./sort/dest ./tar/dest
+
+The sortable dicoms will be organized into the sort destination (`./sort/dest`
+from example) by exam number and series number.  Unsortable dicoms will be
+left in the original source directory (`./mess/of/dicoms` from example).
+
+Output tarfiles will be placed into the tar destination (`./tar/dest`
+from example), and be named by their exam number and series number.
+
+---
+
+### siemens_multicoil.py
+
+Reconstruct and concatenate two niftis in the order the dicoms.tgz sources are
+provided on the command line. To reconstruct a Siemens multicoil scan, give the
+individual coil dicom.tgz as the first input, and the combined coil dicom.tgz as the
+second input.
+
+	siemens_multicoil.py ./path/to/individual_coils_dicoms.tgz ./path/to/combined_coils_dicoms.tgz
+
+The output nifti will be named after the first dataset's exam and series number, suffixed with '_multicoil'i.

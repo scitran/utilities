@@ -68,10 +68,13 @@ class NiftiConcat(object):
     def process(self):
         log.info('reconstructing and concatenating')
         outfiles = []
+        first_tr = None
         with tempfile.TemporaryDirectory(dir=None) as temp_dirpath:
             for f in self.inputs:
                 fpath = os.path.abspath(f)
                 dcm_ds = nimsdata.parse(fpath, filetype='dicom', load_data=True)
+                if not first_tr:
+                    first_tr = dcm_ds.tr
                 # save info to name this nifti
                 label = '%s_%s' % (dcm_ds.exam_no, dcm_ds.series_no)
                 intermediate = os.path.join(temp_dirpath, '_%s' % label)
@@ -117,6 +120,7 @@ class NiftiConcat(object):
                 clip_vals = np.percentile(data, (10.0, 99.5))
             nii_header.structarr['cal_min'] = clip_vals[0]
             nii_header.structarr['cal_max'] = clip_vals[1]
+            nii_header['pixdim'][4] = first_tr
 
             if os.path.exists(self.outbase):
                 raise ProcessorError('output file %s already exists. not overwriting. bailing.', log_level=logging.ERROR)

@@ -60,7 +60,7 @@ class NiftiConcat(object):
         self.outbase = outbase
         for f in input_list:
             if not os.path.exists(f):
-                raise ProcessorError('file %s does not exist. bailing', log_level=logging.ERROR)
+                raise ProcessorError('file %s does not exist. bailing' % f, log_level=logging.ERROR)
         self.voxel_order = voxel_order
         self.outbase = outbase
         log.info('preparing to reconstruct %s' % str(self.inputs))
@@ -72,7 +72,7 @@ class NiftiConcat(object):
         with tempfile.TemporaryDirectory(dir=None) as temp_dirpath:
             for f in self.inputs:
                 fpath = os.path.abspath(f)
-                dcm_ds = nimsdata.parse(fpath, filetype='dicom', load_data=True)
+                dcm_ds = nimsdata.parse(fpath, filetype='dicom', load_data=True, ignore_json=True)
                 if not first_tr:
                     first_tr = dcm_ds.tr
                 # save info to name this nifti
@@ -141,11 +141,19 @@ if __name__ == '__main__':
     argparser.add_argument('inputs', nargs='+', help='paths of input(s)')
     argparser.add_argument('-o', '--outbase', help='base for output names')
     argparser.add_argument('-v', '--voxel_order', help='reorder the voxels, default LPS', default='LPS')
+    argparser.add_argument('-d', '--debug', help='enable debug logging', action='store_true', default=False)
     args = argparser.parse_args()
+
+    if args.debug:
+        log.setLevel(logging.DEBUG)
 
     outbase = None
     if args.outbase:
         outbase = args.outbase
 
-    n = NiftiConcat(args.inputs, outbase, args.voxel_order)
+    inputs = []
+    for i in args.inputs:
+        inputs.append(os.path.abspath(i))
+
+    n = NiftiConcat(inputs, outbase, args.voxel_order)
     n.process()

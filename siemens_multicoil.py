@@ -32,11 +32,13 @@ import os
 import logging
 import nibabel
 import dcmstack
+import warnings
 import traceback        # log tracebacks
 import numpy as np
 
 log = logging.getLogger(os.path.basename(__file__)[:-3])
 logging.basicConfig(level=logging.INFO)
+warnings.simplefilter("ignore", FutureWarning)
 
 import nimsdata         # use .parse and .write interfaces
 import tempdir as tempfile
@@ -82,21 +84,23 @@ class NiftiConcat(object):
                 if not self.outbase:
                     self.outbase = os.path.join(label + '_multicoil.nii.gz')
                 result = nimsdata.write(dcm_ds, dcm_ds.data, intermediate, filetype='nifti', voxel_order=self.voxel_order)
+                log.debug('reconstructed nifti: %s' % result)
                 # maintain a list of intermediate files
                 outfiles += result
 
             first_nii_header = None
-            first_qto_xyz = np.empty([4, 4])    # to be able to check if any is saved at all.
+            first_qto_xyz = None    # to be able to check if any is saved at all.
             seq = []
             # create a sequence from the intermediate files
             # resulting sequence items should have consistent dimensions
+            log.debug('combinging niftis: %s' % str(outfiles))
             for f in outfiles:
                 nii = dcmstack.dcmmeta.NiftiWrapper(nibabel.load(f), make_empty=True)
                 # store the header from the first outfile
-                if not first_nii_header:
+                if first_nii_header is None:
                     log.debug('storing first input nifti header')
                     first_nii_header = nii.nii_img.get_header()
-                if not first_qto_xyz.any():     # is array set?
+                if first_qto_xyz is None:     # is array set?
                     log.debug('storing first input affine')
                     first_qto_xyz = nii.nii_img.get_affine()
                 # build up the sequence of nifti wrappers

@@ -27,7 +27,6 @@ combine niftis
 """
 
 
-# update syspath for nimsdata
 import os
 import logging
 import nibabel
@@ -40,7 +39,7 @@ log = logging.getLogger(os.path.basename(__file__)[:-3])
 logging.basicConfig(level=logging.INFO)
 warnings.simplefilter("ignore", FutureWarning)
 
-import nimsdata         # use .parse and .write interfaces
+import scitran.data as scidata         # use .parse and .write interfaces
 import tempdir as tempfile
 
 
@@ -74,7 +73,7 @@ class NiftiConcat(object):
         with tempfile.TemporaryDirectory(dir=None) as temp_dirpath:
             for f in self.inputs:
                 fpath = os.path.abspath(f)
-                dcm_ds = nimsdata.parse(fpath, filetype='dicom', load_data=True, ignore_json=True)
+                dcm_ds = scidata.parse(fpath, filetype='dicom', load_data=True, ignore_json=True)
                 if not first_tr:
                     first_tr = dcm_ds.tr
                 # save info to name this nifti
@@ -83,7 +82,7 @@ class NiftiConcat(object):
                 # save info to name the final output
                 if not self.outbase:
                     self.outbase = os.path.join(label + '_multicoil.nii.gz')
-                result = nimsdata.write(dcm_ds, dcm_ds.data, intermediate, filetype='nifti', voxel_order=self.voxel_order)
+                result = scidata.write(dcm_ds, dcm_ds.data, intermediate, filetype='nifti', voxel_order=self.voxel_order)
                 log.debug('reconstructed nifti: %s' % result)
                 # maintain a list of intermediate files
                 outfiles += result

@@ -74,7 +74,8 @@ def sort(args):
     time.sleep(2)
 
     for i, filepath in enumerate(files):
-        print '%*d/%d' % (cnt_width, i+1, file_cnt),
+        if args.verbose:
+            print '%*d/%d' % (cnt_width, i+1, file_cnt),
         try:
             dcm = dicom.read_file(filepath, stop_before_pixels=True)
         except:
@@ -89,7 +90,8 @@ def sort(args):
                 os.makedirs(acq_path)
             new_filepath = os.path.join(acq_path, os.path.basename(filepath))
             if not os.path.isfile(new_filepath):
-                print 'sorting %s' % filepath
+                if args.verbose:
+                    print 'sorting %s' % filepath
                 os.rename(filepath, new_filepath)
             elif checksum(filepath) == checksum(new_filepath):
                 print 'deleting duplicate %s' % filepath
@@ -114,12 +116,17 @@ def tar(args):
 
     print 'found %d directories to compress (ignoring symlinks and dotfiles)' % dir_cnt
     time.sleep(2)
-
     metadata = {'filetype': 'dicom'}
+    if args.group:
+        if not args.project:
+            args.project='unknown'
+        overwrite = {'overwrite': { 'group_name': args.group, 'project_name': args.project }}
+        metadata.update(overwrite)
     for i, dirpath in enumerate(dirs):
 	dirname = os.path.basename(dirpath)
 	dir_relpath = os.path.relpath(dirpath, args.sort_path)
-        print '%*d/%d compressing %s' % (cnt_width, i+1, dir_cnt, dir_relpath)
+        if args.verbose:
+            print '%*d/%d compressing %s' % (cnt_width, i+1, dir_cnt, dir_relpath)
         write_json_file(dirpath + '/metadata.json', metadata)
         create_archive(os.path.join(args.tar_path, dir_relpath.replace('/', '_') + '.tgz'), dirpath, dirname, compresslevel=6)
 
@@ -139,6 +146,7 @@ sort_parser = subparsers.add_parser(
         )
 sort_parser.add_argument('path', help='input path of unsorted data')
 sort_parser.add_argument('sort_path', help='output path for sorted data')
+sort_parser.add_argument('-v','--verbose', action='store_true', help='provide stream of files as they are sorted')
 sort_parser.set_defaults(func=sort)
 
 tar_parser = subparsers.add_parser(
@@ -147,6 +155,9 @@ tar_parser = subparsers.add_parser(
         )
 tar_parser.add_argument('sort_path', help='input path of sorted data')
 tar_parser.add_argument('tar_path', help='output path for tar\'ed data')
+tar_parser.add_argument('--group', type=str,  help='name of group to sort data into')
+tar_parser.add_argument('--project', type=str, help='name of project to sort data into')
+tar_parser.add_argument('-v','--verbose', action='store_true', help='provide stream of tar files as they are tar\'d' )
 tar_parser.set_defaults(func=tar)
 
 tarsort_parser = subparsers.add_parser(
@@ -156,6 +167,9 @@ tarsort_parser = subparsers.add_parser(
 tarsort_parser.add_argument('path', help='input path of unsorted data')
 tarsort_parser.add_argument('sort_path', help='input path of sorted data')
 tarsort_parser.add_argument('tar_path', help='output path for tar\'ed data')
+tarsort_parser.add_argument('--group', type=str, help='name of group to sort data into')
+tarsort_parser.add_argument('--project', type=str, help='name of project to sort data into')
+tarsort_parser.add_argument('-v','--verbose', action='store_true', help='provide stream of files as they are sorted')
 tarsort_parser.set_defaults(func=tarsort)
 
 args = parser.parse_args()

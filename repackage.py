@@ -52,19 +52,24 @@ def create_archive(path, content, arcname, metadata={}, **kwargs):
             archive.add(os.path.join(content, fn), os.path.join(arcname, fn))
 
 
-def repackage(dcmtgz, outdir=None):
+def repackage(dcmtgz, outdir=None, args=None):
     if outdir and not os.path.exists(outdir):
         os.makedirs(outdir)
     outname = os.path.basename(dcmtgz)
     if outdir:
         outname = os.path.join(outdir, outname)
     if os.path.exists(outname):
-        print ('nooo! do not overwrite existing %s' % outname)
+        print ('%s exists! We will replace it.' % outname)
     with TemporaryDirectory() as tempdir_path:
         with tarfile.open(dcmtgz) as archive:
             archive.extractall(path=tempdir_path)
         dcm_dir = glob.glob(os.path.join(tempdir_path, '*'))[0]
         metadata = {'filetype': 'dicom'}
+        if args.group:
+            if not args.project:
+                args.project='unknown'
+            overwrite = {'overwrite': { 'group_name': args.group, 'project_name': args.project }}
+        metadata.update(overwrite)
         basename = os.path.basename(dcm_dir)
         print ('repackaging %s to %s' % (dcmtgz, outname))
         create_archive(outname, dcm_dir, basename, metadata, compresslevel=6)
@@ -169,6 +174,8 @@ if __name__ == '__main__':
     ap = argparse.ArgumentParser()
     ap.add_argument('target', help='input tgz or dir to walk)')
     ap.add_argument('-o', '--output_dir', help='output into this directory, will create if doesn not exist')
+    ap.add_argument('-g', '--group', type=str,  help='name of group to sort data into')
+    ap.add_argument('-p', '--project', type=str, help='name of project to sort data into')
     args = ap.parse_args()
 
     outdir = None
@@ -178,6 +185,6 @@ if __name__ == '__main__':
 
     if os.path.isdir(args.target):
         for f in glob.glob(os.path.join(args.target, '*.tgz')):
-            repackage(f, args.output_dir)
+            repackage(f, args.output_dir, args)
     elif os.path.isfile(args.target):
-        repackage(args.target, args.output_dir)
+        repackage(args.target, args.output_dir, args)

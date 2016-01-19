@@ -1,8 +1,21 @@
-# NIMS Scripts
+# SCITRAN Scripts
 Miscellaneous scripts.
 
 ---
 
+### oauth2cli.py
+
+Open a browser window to get credentials for the Scitran API.
+
+    python oauth2cli.py --auth_host_port 9000 --client-secret <client-secret> --client-id <client-id>
+
+requirements:
+oauth2client
+
+It creates a json file called "credentials\_sdm".
+The credentials' access\_token is also printed to stdout.
+
+---
 
 ### dicomsort.py
 

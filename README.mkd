@@ -7,13 +7,17 @@ Miscellaneous scripts.
 
 Open a browser window to get credentials for the Scitran API.
 
-    python oauth2cli.py --auth_host_port 9000 --client-secret <client-secret> --client-id <client-id>
+    python oauth2cli.py create --auth_host_port 9000 --client-secret <client-secret> --client-id <client-id>
+    
+It creates a json file called "credentials\_sdm".
+The credentials' access\_token is also printed to stdout.
+    
+To refresh an existing token.
+
+    python oauth2cli.py refresh
 
 requirements:
 oauth2client
-
-It creates a json file called "credentials\_sdm".
-The credentials' access\_token is also printed to stdout.
 
 ---
 

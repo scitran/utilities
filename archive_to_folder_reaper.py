@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 #TODO: Better documentation
-#TODO: Support multiple nested sessions within a single archive
 
 """
 SciTran NIMS and SDM archive to folder Reaper conversion utility.
@@ -31,6 +30,7 @@ import tarfile
 import logging
 import argparse
 import subprocess
+from distutils.dir_util import copy_tree
 
 
 logging.basicConfig(
@@ -51,7 +51,7 @@ def extract_subject_id(root_path, args):
     log.info('No subjectID provided - Attempting to extract subject ID from dicom...')
     subject_id = None
 
-    (file_paths, dir_paths) = get_paths(root_path)
+    (file_paths, dir_paths, _, _, _) = get_paths(root_path)
     dicom_dirs = [d for d in dir_paths if d.endswith('dicom')]
 
     # Read the dicom file and return an id from (PatientID - PatientName - StudyDate+StudyTime)
@@ -65,29 +65,35 @@ def extract_subject_id(root_path, args):
 
         # Use the PatientID field
         else:
-            if dcm.PatientID and not dcm.PatientID == args.group: # Some users put the group in this field
+            if dcm.PatientID and dcm.PatientID != args.group: # Some users put the group in this field
                 subject_id = dcm.PatientID
                 if subject_id.split('@')[0]:# Check for Reaper sorting string. If there, then split at the '@'
                     subject_id = subject_id.split('@')[0]
                     if subject_id.find(args.group + '/') > 1:# If the group/is still in the name then no subjectID was entered
                         subject_id = None
+                if subject_id.find('/'): # If / is still in the id then no id was entered
+                    subject_id = None
 
         # Use the PatientName field
         if not subject_id and dcm.PatientName:
             subject_id = dcm.PatientName.replace('^',' ')
             if subject_id[0] == ' ': # If the first char is a space, remove it
                 subject_id = subject_id[1:]
+            if subject_id.find(' ') > 0:
+                subject_id = None
             # FIXME: This could be a proper name (remove it)
 
         # Use StudyID
-        if not subject_id:
-            if dcm.StudyID:
-                subject_id = 'ex' + dcm.StudyID
+        if not subject_id and dcm.StudyID:
+            subject_id = 'ex' + dcm.StudyID
 
     # No dicoms - use the session folder name
-    if not subject_id: # This is empty b/c there are no dicoms, or the id field set failed
+    if not subject_id or subject_id.isspace(): # This is empty b/c there are no dicoms, or the id field set failed
         log.info('... subjectID could not be extraced from DICOM header - setting subjectID  from session label')
-        subject_id = 'sub_' + os.path.basename(dir_paths[3]).replace(' ', '_').replace(':','')
+        subject_id = 'sub_' + os.path.basename(root_path).replace(' ', '_').replace(':','')
+
+    # Sanitize subject_id
+    subject_id = subject_id.replace(os.sep, '_')
 
     log.info('... subjectID set to %s' % subject_id)
     return subject_id
@@ -117,17 +123,20 @@ def screen_save_montage(dirs):
         log.info('... 0 screen saves found')
 
 
-def extract_dicoms(files, dbtype):
+def extract_dicoms(files):
     dicom_arcs = [f for f in files if f.endswith('_dicoms.tgz') or f.endswith('_dicom.tgz')]
     if dicom_arcs:
         log.info('... %s dicom archives to extract' % str(len(dicom_arcs)))
         for f in dicom_arcs:
             utd = untar(f, os.path.dirname(f))
-            del_files = ['DIGEST.txt', 'METADATA.json', 'metadata.json', 'digest.txt']
+            del_files = ['._*', 'DIGEST.txt', 'METADATA.json', 'metadata.json', 'digest.txt']
             for df in del_files:
                 [os.remove(d) for d in glob.glob(utd + '/' + df)]
+            log.debug('renaming %s' % utd)
+            # BUG:TODO: This can be an issue if there is more than one dicom archive per acquisition (see ex9407 on SNI-SDM)
             os.rename(utd, os.path.join(os.path.dirname(utd), 'dicom'))
             os.remove(f)
+            log.debug('Removing %s' % f)
         log.info('... done')
     else:
         log.info('... 0 dicom archives found')
@@ -139,7 +148,7 @@ def extract_pfiles(files):
         log.info('... %s pfile archives to extract' % str(len(pfile_arcs)))
         for f in pfile_arcs:
             utd = untar(f, os.path.dirname(f))
-            [_files, _dirs] = get_paths(utd)
+            [_files, _dirs, _, _, _] = get_paths(utd)
             for p in _files:
                 if p.endswith('.7'):
                     gzfile = create_gzip(p, p + '.gz')
@@ -184,18 +193,32 @@ def extract_physio(files):
 def get_paths(root_path):
     file_paths = []
     dir_paths = []
+    groups = []
+    projects = []
+    sessions = []
     for (root, dirs, files) in os.walk(root_path):
         for name in files:
             file_paths.append(os.path.join(root, name))
         for name in dirs:
             dir_paths.append(os.path.join(root, name))
-    return (file_paths, dir_paths)
+    if len(dir_paths) > 3:
+        group_level = len(dir_paths[1].split(os.sep))
+        project_level = group_level + 1
+        session_level = project_level + 1
+        [groups.append(d) for d in dir_paths if len(d.split(os.sep)) == group_level]
+        [projects.append(d) for d in dir_paths if len(d.split(os.sep)) == project_level]
+        [sessions.append(d) for d in dir_paths if len(d.split(os.sep)) == session_level]
+    return (file_paths, dir_paths, groups, projects, sessions)
 
 
 def untar(fname, path):
     tar = tarfile.open(fname)
     tar.extractall(path)
-    untar_dir = os.path.join(path, (tar.getnames()[0])) # The 0 item is the directory within the tar_file
+    untar_dir = '.'
+    while untar_dir.startswith('.'):
+        for name in range(0, len(tar.getnames())):
+            untar_dir = os.path.dirname(tar.getnames()[name])
+    untar_dir = os.path.join(path, untar_dir)
     tar.close()
     return untar_dir
 
@@ -222,7 +245,6 @@ def main():
     arg_parser = argparse.ArgumentParser()
     arg_parser.add_argument('tar_file', help='NIMS Tar File', type=str)
     arg_parser.add_argument('output_path', help='path for untar data', type=str)
-    arg_parser.add_argument('-d', '--dbtype', help='Database Type (nims, sdm)', type=str, default='')
     arg_parser.add_argument('-g', '--group', help='Group', type=str, default='')
     arg_parser.add_argument('-p', '--project', help='project', type=str, default='')
     arg_parser.add_argument('-s', '--subject', help='Subject Code', type=str, default='')
@@ -249,75 +271,99 @@ def main():
 
     ## 3. Generate file paths and directory paths
     log.info('Extracting path and file info in %s' % output_path)
-    (file_paths, dir_paths) = get_paths(output_path)
+    (file_paths, dir_paths, group_paths, project_paths, session_paths) = get_paths(output_path)
+    db_root_path = dir_paths[0] # sdm or nims path (removed later)
 
 
     ## 4. Handle missing arguments
-    if not args.dbtype:
-        args.dbtype = os.path.basename(dir_paths[0]).lower()
-        log.info('No dbtype provided... %s detected' % os.path.basename(dir_paths[0]))
     if not args.group:
-        args.group = os.path.basename(dir_paths[1])
+        get_group = True
+    else:
+        get_group = False
+        #args.group = os.path.basename(dir_paths[1])
     if not args.project:
-        args.project = os.path.basename(dir_paths[2])
+        get_project = True
+    else:
+        get_project = False
+        #args.project = os.path.basename(dir_paths[2])
     if not args.subject:
         get_subject_id = True
     else:
         get_subject_id = False
 
+    # DO ALL THE THINGS
+    for group in group_paths:
+        if get_group == True:
+            args.group = os.path.basename(group)
+            log.debug(group)
+            log.debug(args)
+            projects = []
+            [projects.append(p) for p in project_paths if p.startswith(group)]
 
-    ## 5. Remove the 'qa.json' files (UI can't read them)
-    for f in file_paths:
-        if f.endswith('qa.json'):
-            os.remove(f)
+        for project in projects:
+            if get_project == True:
+                args.project = os.path.basename(project)
+                log.debug(project)
+                log.debug(args)
+                sessions = []
+                [sessions.append(s) for s in session_paths if s.startswith(project)]
+
+                for session in sessions:
+                    (file_paths, dir_paths, _, _, _) = get_paths(session)
+                    log.debug(session)
+                    log.debug(project)
+                    log.debug(args)
+
+                    ## 5. Remove the 'qa.json' files (UI can't read them)
+                    for f in file_paths:
+                        if f.endswith('qa.json'):
+                            os.remove(f)
+
+                    ## 6. Rename: qa file to [...].qa.png and montage to .montage.zip
+                    for f in file_paths:
+                        if f.endswith('_qa.png'):
+                            new_name = f.replace('_qa.png', '.qa.png')
+                            os.rename(f, new_name)
+                        if f.endswith('_montage.zip'):
+                            new_name = f.replace('_montage.zip', '.montage.zip')
+                            os.rename(f, new_name)
+
+                    ## 7. Extract physio regressors (_physio_regressors.csv.gz)
+                    log.info('Extracting physio regressors...')
+                    extract_physio(file_paths)
+
+                    ## 8. Move _physio.tgz files to gephsio and zip (removing digest .txt)
+                    log.info('Extracting and repackaging physio data...')
+                    extract_and_zip_physio(file_paths)
+
+                    ## 9. Extract pfiles and remove the digest and metadata files and gzip the file
+                    log.info('Extracting and repackaging pfiles...')
+                    extract_pfiles(file_paths)
+
+                    ## 10. Extract all the dicom archives and rename to 'dicom'
+                    log.info('Extracting dicom archives...')
+                    extract_dicoms(file_paths)
+
+                    ## 11. Create a montage of the screen saves and move them to the correct acquisition
+                    log.info('Processing screen saves...')
+                    screen_save_montage(dir_paths)
+
+                    ## 12. Get the subjectID (if not passed in)
+                    if get_subject_id == True:
+                        args.subject = extract_subject_id(session, args)
+
+                    ## 13. Make the folder hierarchy and move the session to it's right place
+                    log.info('Organizing final file structure...')
+                    target_path = os.path.join(output_path, args.group, args.project, args.subject)
+                    log.debug('Target Path: %s' % target_path)
+                    log.debug(session)
+                    if not os.path.isdir(target_path):
+                        os.makedirs(target_path)
+                    shutil.move(session, target_path) # Move the session to the target
 
 
-    ## 6. Rename: qa file to [...].qa.png and montage to .montage.zip
-    for f in file_paths:
-        if f.endswith('_qa.png'):
-            new_name = f.replace('_qa.png', '.qa.png')
-            os.rename(f, new_name)
-        if f.endswith('_montage.zip'):
-            new_name = f.replace('_montage.zip', '.montage.zip')
-            os.rename(f, new_name)
-
-
-    ## 7. Extract physio regressors (_physio_regressors.csv.gz)
-    log.info('Extracting physio regressors...')
-    extract_physio(file_paths)
-
-
-    ## 8. Move _physio.tgz files to gephsio and zip (removing digest .txt)
-    log.info('Extracting and repackaging physio data...')
-    extract_and_zip_physio(file_paths)
-
-
-    ## 9. Extract pfiles and remove the digest and metadata files and gzip the file
-    log.info('Extracting and repackaging pfiles...')
-    extract_pfiles(file_paths)
-
-
-    ## 10. Extract all the dicom archives and rename to 'dicom'
-    log.info('Extracting dicom archives...')
-    extract_dicoms(file_paths, args.dbtype)
-
-
-    ## 11. Create a montage of the screen saves and move them to the correct acquisition
-    log.info('Processing screen saves...')
-    screen_save_montage(dir_paths)
-
-
-    ## 12. Get the subjectID (if not passed in)
-    if get_subject_id:
-        args.subject = extract_subject_id(output_path, args)
-
-
-    ## 13. Make the folder hierarchy and move the session to it's right place
-    log.info('Organizing final file structure...')
-    target_path = os.path.join(output_path, args.group, args.project, args.subject)
-    os.makedirs(target_path)
-    shutil.move(dir_paths[3], target_path) # Move the session to the target
-    shutil.rmtree(dir_paths[0]) # Remove the NIMS folder
+    # Remove the db root folder
+    shutil.rmtree(db_root_path)
 
 
     log.info("Done.")

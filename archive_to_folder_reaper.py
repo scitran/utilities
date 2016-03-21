@@ -170,6 +170,7 @@ def extract_and_zip_physio(files):
             os.rename(utd + '.zip', utd + '.gephysio.zip')
             shutil.rmtree(utd)
             os.remove(f)
+        log.info('... done')
     else:
         log.info('... 0 physio archives found')
 
@@ -186,6 +187,16 @@ def extract_physio(files):
             os.remove(f)
     else:
         log.info('... 0 physio regressors found')
+
+def prune_tree(files, args):
+    if args.prune:
+        log.debug('Pruning files that end with %s ' % args.prune)
+        for p in args.prune:
+            for f in files:
+                if f.endswith(p):
+                    os.remove(f)
+                    log.debug('Pruning file %s ' % f)
+        #[os.remove(f) for f in files if f.endswith(p)]
 
 
 ###### UTILITIES ######
@@ -250,6 +261,7 @@ def main():
     arg_parser.add_argument('-s', '--subject', help='Subject Code', type=str, default='')
     arg_parser.add_argument('-i', '--subject_id_field', help='Look here for the subject id', type=str, default='')
     arg_parser.add_argument('-l', '--loglevel', default='info', help='log level [default=info]')
+    arg_parser.add_argument('--prune', action='append', help='Files that end with this string will be pruned from final tree.')
 
     args = arg_parser.parse_args()
 
@@ -280,89 +292,90 @@ def main():
         get_group = True
     else:
         get_group = False
-        #args.group = os.path.basename(dir_paths[1])
     if not args.project:
         get_project = True
     else:
         get_project = False
-        #args.project = os.path.basename(dir_paths[2])
     if not args.subject:
         get_subject_id = True
     else:
         get_subject_id = False
 
-    # DO ALL THE THINGS
+    # Go through groups/projects/sessions
     for group in group_paths:
         if get_group == True:
             args.group = os.path.basename(group)
-            log.debug(group)
-            log.debug(args)
-            projects = []
-            [projects.append(p) for p in project_paths if p.startswith(group)]
+        log.debug(group)
+        log.debug(args)
+        projects = []
+        [projects.append(p) for p in project_paths if p.startswith(group)]
 
         for project in projects:
             if get_project == True:
                 args.project = os.path.basename(project)
+            log.debug(project)
+            log.debug(args)
+            sessions = []
+            [sessions.append(s) for s in session_paths if s.startswith(project)]
+
+            for session in sessions:
+                (file_paths, dir_paths, _, _, _) = get_paths(session)
+                log.debug(session)
                 log.debug(project)
                 log.debug(args)
-                sessions = []
-                [sessions.append(s) for s in session_paths if s.startswith(project)]
 
-                for session in sessions:
-                    (file_paths, dir_paths, _, _, _) = get_paths(session)
-                    log.debug(session)
-                    log.debug(project)
-                    log.debug(args)
+                ## 5. Remove the 'qa.json' files (UI can't read them)
+                for f in file_paths:
+                    if f.endswith('qa.json'):
+                        os.remove(f)
 
-                    ## 5. Remove the 'qa.json' files (UI can't read them)
-                    for f in file_paths:
-                        if f.endswith('qa.json'):
-                            os.remove(f)
+                ## 6. Rename: qa file to [...].qa.png and montage to .montage.zip
+                for f in file_paths:
+                    if f.endswith('_qa.png'):
+                        new_name = f.replace('_qa.png', '.qa.png')
+                        os.rename(f, new_name)
+                    if f.endswith('_montage.zip'):
+                        new_name = f.replace('_montage.zip', '.montage.zip')
+                        os.rename(f, new_name)
 
-                    ## 6. Rename: qa file to [...].qa.png and montage to .montage.zip
-                    for f in file_paths:
-                        if f.endswith('_qa.png'):
-                            new_name = f.replace('_qa.png', '.qa.png')
-                            os.rename(f, new_name)
-                        if f.endswith('_montage.zip'):
-                            new_name = f.replace('_montage.zip', '.montage.zip')
-                            os.rename(f, new_name)
+                ## 7. Extract physio regressors (_physio_regressors.csv.gz)
+                log.info('Extracting physio regressors...')
+                extract_physio(file_paths)
 
-                    ## 7. Extract physio regressors (_physio_regressors.csv.gz)
-                    log.info('Extracting physio regressors...')
-                    extract_physio(file_paths)
+                ## 8. Move _physio.tgz files to gephsio and zip (removing digest .txt)
+                log.info('Extracting and repackaging physio data...')
+                extract_and_zip_physio(file_paths)
 
-                    ## 8. Move _physio.tgz files to gephsio and zip (removing digest .txt)
-                    log.info('Extracting and repackaging physio data...')
-                    extract_and_zip_physio(file_paths)
+                ## 9. Extract pfiles and remove the digest and metadata files and gzip the file
+                log.info('Extracting and repackaging pfiles...')
+                extract_pfiles(file_paths)
 
-                    ## 9. Extract pfiles and remove the digest and metadata files and gzip the file
-                    log.info('Extracting and repackaging pfiles...')
-                    extract_pfiles(file_paths)
+                ## 10. Extract all the dicom archives and rename to 'dicom'
+                log.info('Extracting dicom archives...')
+                extract_dicoms(file_paths)
 
-                    ## 10. Extract all the dicom archives and rename to 'dicom'
-                    log.info('Extracting dicom archives...')
-                    extract_dicoms(file_paths)
+                ## 11. Create a montage of the screen saves and move them to the correct acquisition
+                log.info('Processing screen saves...')
+                screen_save_montage(dir_paths)
 
-                    ## 11. Create a montage of the screen saves and move them to the correct acquisition
-                    log.info('Processing screen saves...')
-                    screen_save_montage(dir_paths)
+                ## 12. Get the subjectID (if not passed in)
+                if get_subject_id == True:
+                    args.subject = extract_subject_id(session, args)
 
-                    ## 12. Get the subjectID (if not passed in)
-                    if get_subject_id == True:
-                        args.subject = extract_subject_id(session, args)
+                ## 13. Prune tree to remove unwanted files
+                prune_tree(file_paths, args)
 
-                    ## 13. Make the folder hierarchy and move the session to it's right place
-                    log.info('Organizing final file structure...')
-                    target_path = os.path.join(output_path, args.group, args.project, args.subject)
-                    log.debug('Target Path: %s' % target_path)
-                    log.debug(session)
-                    if not os.path.isdir(target_path):
-                        os.makedirs(target_path)
-                    shutil.move(session, target_path) # Move the session to the target
+                ## 14. Make the folder hierarchy and move the session to it's right place
+                log.info('Organizing final file structure...')
+                target_path = os.path.join(output_path, args.group, args.project, args.subject)
+                log.debug('Target Path: %s' % target_path)
+                log.debug(session)
+                if not os.path.isdir(target_path):
+                    os.makedirs(target_path)
+                shutil.move(session, target_path) # Move the session to the target
 
 
-    # Remove the db root folder
+    ## 15. Remove the db root folder
     shutil.rmtree(db_root_path)
 
 

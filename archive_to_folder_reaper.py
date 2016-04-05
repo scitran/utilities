@@ -149,6 +149,7 @@ def extract_pfiles(files):
         for f in pfile_arcs:
             utd = untar(f, os.path.dirname(f))
             [_files, _dirs, _, _, _] = get_paths(utd)
+            [shutil.move(ff, os.path.dirname(utd)) for ff in _files if ff.endswith('.dat')]
             for p in _files:
                 if p.endswith('.7'):
                     gzfile = create_gzip(p, p + '.gz')

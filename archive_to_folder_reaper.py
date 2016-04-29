@@ -106,8 +106,9 @@ def screen_save_montage(dirs):
         for d in screen_saves:
             pngs = glob.glob(d + '/*.png')
             montage_name = pngs[0][:-5] + 'montage.png'
+            pngs = [shellquote(p) for p in pngs]
             # Build the montage (requires imagemagick)
-            os.system('montage -geometry +4+4 ' + " ".join(pngs) + ' ' + montage_name)
+            os.system('montage -geometry +4+4 ' + " ".join(pngs) + ' ' + shellquote(montage_name))
             # Move the contents of this folder to the correct acquitision directory
             ss_num = os.path.basename(d).split('_')[0][-2:] # This is the acquisition number we need
             if ss_num[0] == '0': # Drop the leading zero if it's the first char
@@ -194,13 +195,16 @@ def prune_tree(files, args):
         log.debug('Pruning files that end with %s ' % args.prune)
         for p in args.prune:
             for f in files:
-                if f.endswith(p):
+                if f.endswith(p) and os.path.isfile(p):
                     os.remove(f)
                     log.debug('Pruning file %s ' % f)
-        #[os.remove(f) for f in files if f.endswith(p)]
 
 
 ###### UTILITIES ######
+
+def shellquote(s):
+   return "'" + s.replace("'", "'\\''") + "'"
+
 
 def get_paths(root_path):
     file_paths = []

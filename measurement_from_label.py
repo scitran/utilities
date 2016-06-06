@@ -50,7 +50,8 @@ def is_anatomy_inplane(label):
 # Anatomy, other
 def is_anatomy(label):
     regexes = [
-        re.compile('(?=.*IR)(?=.*EPI)', re.IGNORECASE)
+        re.compile('(?=.*IR)(?=.*EPI)', re.IGNORECASE),
+        re.compile('flair', re.IGNORECASE)
     ]
     return regex_search_label(regexes, label)
 
@@ -164,6 +165,15 @@ def is_proton_density(label):
         ]
     return regex_search_label(regexes, label)
 
+# Phase Map
+def is_phase_map(label):
+    regexes = [
+        re.compile('(?=.*phase)(?=.*map)', re.IGNORECASE),
+        re.compile('^phase$', re.IGNORECASE)
+        ]
+    return regex_search_label(regexes, label)
+
+
 
 # Utility:  Check a list of regexes for truthyness
 def regex_search_label(regexes, label):
@@ -188,7 +198,7 @@ def infer_measurement(label):
     elif is_anatomy_t2(label):
         measurement = 'anatomy_t2w'
     elif is_anatomy(label):
-        measurement = 'anatomy'
+        measurement = 'anatomy_ir'
     elif is_diffusion(label):
         measurement = 'diffusion'
     elif is_functional(label):
@@ -198,7 +208,7 @@ def infer_measurement(label):
     elif is_localizer(label):
         measurement = 'localizer'
     elif is_fieldmap(label):
-        measurement = 'fieldmap'
+        measurement = 'field_map'
     elif is_shim(label):
         measurement = 'high_order_shim'
     elif is_calibration(label):
@@ -213,6 +223,8 @@ def infer_measurement(label):
         measurement = 'perfusion'
     elif is_spectroscopy(label):
         measurement = 'spectroscopy'
+    elif is_phase_map(label):
+        measurement = 'phase_map'
     else:
         measurement = 'unknown'
 

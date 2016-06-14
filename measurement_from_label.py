@@ -61,6 +61,7 @@ def is_diffusion(label):
         re.compile('dti', re.IGNORECASE),
         re.compile('dwi', re.IGNORECASE),
         re.compile('diff_', re.IGNORECASE),
+        re.compile('diffusion', re.IGNORECASE),
         re.compile('(?=.*diff)(?=.*dir)', re.IGNORECASE),
         re.compile('hardi', re.IGNORECASE)
         ]
@@ -193,14 +194,14 @@ def is_spectroscopy(label):
 def infer_measurement(label):
     if is_anatomy_inplane(label):
         measurement = 'anatomy_inplane'
+    elif is_diffusion(label):
+        measurement = 'diffusion'
     elif is_anatomy_t1(label):
         measurement = 'anatomy_t1w'
     elif is_anatomy_t2(label):
         measurement = 'anatomy_t2w'
     elif is_anatomy(label):
         measurement = 'anatomy_ir'
-    elif is_diffusion(label):
-        measurement = 'diffusion'
     elif is_functional(label):
         measurement = 'functional'
     elif is_diffusion_derived(label):

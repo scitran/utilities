@@ -13,7 +13,7 @@
     "qa":               [ ".qa.png", ".qa.json" ],
     "bval":             [ ".bval", ".bvals" ],
     "bvec":             [ ".bvec", ".bvecs" ],
-    "dicom":            [ ".dcm", '.dcm.zip', '.dicom.zip' ],
+    "dicom":            [ ".dcm", ".dcm.zip", ".dicom.zip" ],
     "gephysio":         [ ".gephysio.zip" ],
     "nifti":            [ ".nii.gz", ".nii" ],
     "pfile":            [ ".7.gz", ".7" ]

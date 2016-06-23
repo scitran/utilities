@@ -5,7 +5,7 @@ import random
 import pymongo
 
 '''
-Updates the DB for a dev instance, making the subject subdocuments rich and interesting. 
+Updates the DB for a dev instance, making the subject subdocuments rich and interesting.
 '''
 
 # Connect to the DB
@@ -13,8 +13,18 @@ db = pymongo.MongoClient('mongodb://docker.local.flywheel.io:9001/scitran').get_
 
 # Update DB: Set group names to use the group '_id' (Should be done by the UI)
 for g in db.groups.find({},['_id']):
-  group_name = g['_id'].capitalize() + ' Group'
-  db.groups.update_one({'_id': g['_id']},{'$set':{'name': group_name}})
+    group_name = g['_id'].capitalize() + ' Group'
+    db.groups.update_one({'_id': g['_id']},{'$set':{'name': group_name}})
+
+# Configure tags for the groups
+tags = ['Good Subject', 'Bad Subject', 'To Process', 'Processed', 'To Analyze', 'Analyzed',  'Control', 'Patient', 'NSF Grant', 'NIH Grant', 'NIMH Grant']
+tags1 = tags[:2]
+tags2 = tags[2:6]
+tags3 = tags[6:8]
+tags4 = tags[8:]
+groups = list(db.groups.find())
+for g in groups:
+    db.groups.update_one({'_id':g['_id']}, {'$set':{'tags':tags}})
 
 # Get a list of the subjects/sessions
 subjects = list(db.sessions.find({}, ['subject']))
@@ -34,32 +44,34 @@ for c in codes:
         first_name = names.get_first_name(gender='female')
         sex = 'female'
     last_name = names.get_last_name()
-    
+
     # Set the age (in seconds) from a normal distrubition
     age = int(random.normalvariate(35, 10) * 31536000)
-    
-    # Build some fun subject metadata for each subject 
+
+    # Build some fun subject metadata for each subject
     metadata = {}
+    metadata['IQ'] = int(random.normalvariate(100, 15))
+    metadata['Education'] = int(random.normalvariate(14, 2))
     ses = ['High', 'Middle', 'Low']
     metadata['SES'] = ses[random.randrange(0, len(ses))]
-    metadata['IQ'] = int(random.normalvariate(100, 15)) 
-    metadata['Education'] = int(random.normalvariate(14, 2))
-    metadata['Verbal Reasoning'] = {}
-    metadata['Verbal Reasoning']['Initial Score'] = random.randrange(130, 170)
-    metadata['Verbal Reasoning']['Post Score'] = random.randrange(130, 170)
-    metadata['Quantitative Reasoning'] = {}
-    metadata['Quantitative Reasoning']['Initial Score'] = random.randrange(130, 170)
-    metadata['Quantitative Reasoning']['Post Score'] = random.randrange(130, 170)
-    metadata['Analytical Writing'] = {}
-    metadata['Analytical Writing']['Initial Score'] = random.randrange(2, 6)
-    metadata['Analytical Writing']['Post Score'] = random.randrange(2, 6)
-    
-    # Update the DB 
+    metadata['TOWRE'] = int(random.normalvariate(100, 15))
+    metadata['GORT'] = int(random.normalvariate(100, 15))
+    metadata['SAT'] = int(random.normalvariate(1490, 100))
+    metadata['Verbal_Reasoning'] = {}
+    metadata['Verbal_Reasoning']['Score_1'] = random.randrange(130, 170)
+    metadata['Verbal_Reasoning']['Score_2'] = random.randrange(130, 170)
+    metadata['Quantitative_Reasoning'] = {}
+    metadata['Quantitative_Reasoning']['Score_1'] = random.randrange(130, 170)
+    metadata['Quantitative_Reasoning']['Score_2'] = random.randrange(130, 170)
+    metadata['Analytical_Writing'] = {}
+    metadata['Analytical_Writing']['Score_1'] = random.randrange(2, 6)
+    metadata['Analytical_Writing']['Score_2'] = random.randrange(2, 6)
+
     db.sessions.update_many({'subject.code': c},{'$set':{'subject.lastname': last_name}})
     db.sessions.update_many({'subject.code': c},{'$set':{'subject.firstname': first_name}})
     db.sessions.update_many({'subject.code': c},{'$set':{'subject.sex': sex}})
     db.sessions.update_many({'subject.code': c},{'$set':{'subject.age': age}})
     db.sessions.update_many({'subject.code': c},{'$set':{'subject.metadata': metadata}})
-    
+
     # Increment the index
     idx +=1

@@ -18,13 +18,23 @@ for g in db.groups.find({},['_id']):
 
 # Configure tags for the groups
 tags = ['Good Subject', 'Bad Subject', 'To Process', 'Processed', 'To Analyze', 'Analyzed',  'Control', 'Patient', 'NSF Grant', 'NIH Grant', 'NIMH Grant']
+groups = list(db.groups.find())
+for g in groups:
+    db.groups.update_one({'_id':g['_id']}, {'$set':{'tags':tags}})
+
+# Randomly assign tags from each group to each session
 tags1 = tags[:2]
 tags2 = tags[2:6]
 tags3 = tags[6:8]
 tags4 = tags[8:]
-groups = list(db.groups.find())
-for g in groups:
-    db.groups.update_one({'_id':g['_id']}, {'$set':{'tags':tags}})
+sessions = list(db.sessions.find())
+for ses in sessions:
+    tag_set = []
+    tag_set.append(random.choice(tags1))
+    tag_set.append(random.choice(tags2))
+    tag_set.append(random.choice(tags3))
+    tag_set.append(random.choice(tags4))
+    db.sessions.update_one({'label': ses['label']}, {'$set':{'tags':tag_set}})
 
 # Get a list of the subjects/sessions
 subjects = list(db.sessions.find({}, ['subject']))

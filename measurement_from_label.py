@@ -29,7 +29,8 @@ def is_anatomy_t1(label):
         re.compile('spgr', re.IGNORECASE),
         re.compile('tfl', re.IGNORECASE),
         re.compile('mprage', re.IGNORECASE),
-        re.compile('(?=.*mm )(?=.*iso)', re.IGNORECASE)
+        re.compile('(?=.*mm)(?=.*iso)', re.IGNORECASE),
+        re.compile('(?=.*mp)(?=.*rage)', re.IGNORECASE)
     ]
     return regex_search_label(regexes, label)
 
@@ -107,6 +108,7 @@ def is_functional_derived(label):
 def is_localizer(label):
     regexes = [
         re.compile('localizer', re.IGNORECASE),
+        re.compile('survey', re.IGNORECASE),
         re.compile('loc\.', re.IGNORECASE),
         re.compile(r'\bscout\b', re.IGNORECASE),
         re.compile('(?=.*plane)(?=.*loc)', re.IGNORECASE),

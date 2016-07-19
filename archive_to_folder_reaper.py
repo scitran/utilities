@@ -67,11 +67,8 @@ def extract_subject_id(root_path, args):
         else:
             if dcm.PatientID and dcm.PatientID != args.group: # Some users put the group in this field
                 subject_id = dcm.PatientID
-                if subject_id.split('@')[0]:# Check for Reaper sorting string. If there, then split at the '@'
-                    subject_id = subject_id.split('@')[0]
-                    if subject_id.find(args.group + '/') > 1:# If the group/is still in the name then no subjectID was entered
-                        subject_id = None
-                if subject_id.find('/'): # If / is still in the id then no id was entered
+                subject_id = subject_id.split('@')[0]
+                if '/' in subject_id:# If the group/is still in the name then no subjectID was entered
                     subject_id = None
 
         # Use the PatientName field

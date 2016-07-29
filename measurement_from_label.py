@@ -26,6 +26,7 @@ import re
 def is_anatomy_t1(label):
     regexes = [
         re.compile('(?=.*t1)(?![inplane])', re.IGNORECASE),
+        re.compile('(?=.*3d anat)(?![inplane])', re.IGNORECASE),
         re.compile('spgr', re.IGNORECASE),
         re.compile('tfl', re.IGNORECASE),
         re.compile('mprage', re.IGNORECASE),
@@ -194,42 +195,45 @@ def is_spectroscopy(label):
 
 # Call all functions to determine new label
 def infer_measurement(label):
-    if is_anatomy_inplane(label):
-        measurement = 'anatomy_inplane'
-    elif is_diffusion(label):
-        measurement = 'diffusion'
-    elif is_anatomy_t1(label):
-        measurement = 'anatomy_t1w'
-    elif is_anatomy_t2(label):
-        measurement = 'anatomy_t2w'
-    elif is_anatomy(label):
-        measurement = 'anatomy_ir'
-    elif is_functional(label):
-        measurement = 'functional'
-    elif is_diffusion_derived(label):
-        measurement = 'diffusion_map'
-    elif is_localizer(label):
-        measurement = 'localizer'
-    elif is_fieldmap(label):
-        measurement = 'field_map'
-    elif is_shim(label):
-        measurement = 'high_order_shim'
-    elif is_calibration(label):
-        measurement = 'Calibration'
-    elif is_functional_derived(label):
-        measurement = 'functional_map'
-    elif is_coil_survey(label):
-        measurement = 'coil_survey'
-    elif is_proton_density(label):
-        measurement = 'anatomy_pd'
-    elif is_perfusion(label):
-        measurement = 'perfusion'
-    elif is_spectroscopy(label):
-        measurement = 'spectroscopy'
-    elif is_phase_map(label):
-        measurement = 'phase_map'
+    if not label:
+        return 'unknown'
     else:
-        measurement = 'unknown'
+        if is_anatomy_inplane(label):
+            measurement = 'anatomy_inplane'
+        elif is_diffusion(label):
+            measurement = 'diffusion'
+        elif is_anatomy_t1(label):
+            measurement = 'anatomy_t1w'
+        elif is_anatomy_t2(label):
+            measurement = 'anatomy_t2w'
+        elif is_anatomy(label):
+            measurement = 'anatomy_ir'
+        elif is_functional(label):
+            measurement = 'functional'
+        elif is_diffusion_derived(label):
+            measurement = 'diffusion_map'
+        elif is_localizer(label):
+            measurement = 'localizer'
+        elif is_fieldmap(label):
+            measurement = 'field_map'
+        elif is_shim(label):
+            measurement = 'high_order_shim'
+        elif is_calibration(label):
+            measurement = 'Calibration'
+        elif is_functional_derived(label):
+            measurement = 'functional_map'
+        elif is_coil_survey(label):
+            measurement = 'coil_survey'
+        elif is_proton_density(label):
+            measurement = 'anatomy_pd'
+        elif is_perfusion(label):
+            measurement = 'perfusion'
+        elif is_spectroscopy(label):
+            measurement = 'spectroscopy'
+        elif is_phase_map(label):
+            measurement = 'phase_map'
+        else:
+            measurement = 'unknown'
 
     # Check the measurement
     #if measurement == 'unknown':

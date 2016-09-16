@@ -22,6 +22,11 @@ groups = list(db.groups.find())
 for g in groups:
     db.groups.update_one({'_id':g['_id']}, {'$set':{'tags':tags}})
 
+# Configure RACE and ETHNICITY
+RACE = ['American Indian or Alaska Native', 'Asian', 'Black or African American', 'Hispanic or Latino', 'Native Hawaiian or Other Pacific Islander', 'White']
+ETHNICITY = ['Hispanic or Latino', 'Not Hispanic or Latino']
+
+
 # Randomly assign tags from each group to each session
 tags1 = tags[:2]
 tags2 = tags[2:6]
@@ -57,6 +62,11 @@ for c in codes:
 
     # Set the age (in seconds) from a normal distrubition
     age = int(random.normalvariate(35, 10) * 31536000)
+    sRace = random.choice(RACE)
+    if sRace == 'Hispanic or Latino':
+        sEthnicity = ETHNICITY[0]
+    else:
+        sEthnicity = ETHNICITY[1]
 
     # Build some fun subject metadata for each subject
     metadata = {}
@@ -82,6 +92,8 @@ for c in codes:
     db.sessions.update_many({'subject.code': c},{'$set':{'subject.sex': sex}})
     db.sessions.update_many({'subject.code': c},{'$set':{'subject.age': age}})
     db.sessions.update_many({'subject.code': c},{'$set':{'subject.metadata': metadata}})
+    db.sessions.update_many({'subject.code': c},{'$set':{'subject.ethnicity': sEthnicity}})
+    db.sessions.update_many({'subject.code': c},{'$set':{'subject.race': sRace}})
 
     # Increment the index
     idx +=1

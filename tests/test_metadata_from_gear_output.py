@@ -22,6 +22,6 @@ def test_meta_generate(creates_metadata):
     meta_create(files_in_dirs_fixture)
     with open(metadata_path, 'r') as f:
         assert json.load(f) == {'acquisition': {'files': [
-            {'name': 'log', 'type': 'None'},
-            {'name': 'notes.csv', 'type': 'tabular data'}
+            {'name': 'notes.csv', 'type': 'tabular data'},
+            {'name': 'log/output.log', 'type': 'log'}
         ]}}

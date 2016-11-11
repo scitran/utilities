@@ -39,7 +39,11 @@ def meta_create(outbase):
         outbase = '/flywheel/v0/output'
 
     # Build a dict of output file names and data types
-    output_files = os.listdir(outbase)
+    output_files = [
+        os.path.relpath(os.path.join(root, file), outbase)
+        for root, dirs, files in os.walk(outbase)
+        for file in files
+    ]
     files = []
     if len(output_files) > 0:
         for f in output_files:

@@ -4,33 +4,39 @@ import os
 import json
 import datetime
 
+# Build dict of types, which maps extensions to known data types
+data_types = {
+    "bval":         [ ".bval", ".bvals" ],
+    "bvec":         [ ".bvec", ".bvecs" ],
+    "dicom":        [ ".dcm", ".dcm.zip", ".dicom.zip" ],
+    "parrec":       [ ".parrec.zip", ".par-rec.zip" ],
+    "gephysio":     [ ".gephysio.zip" ],
+    "MATLAB data":  [ ".mat" ],
+    "nifti":        [ ".nii.gz", ".nii" ],
+    "pfile":        [ ".7.gz", ".7" ],
+    "PsychoPy data":  [ ".psydat" ],
+    "qa":           [ ".qa.png", ".qa.json" ],
+
+    "archive":      [ ".zip", ".tbz2", ".tar.gz", ".tbz", ".tar.bz2", ".tgz", ".tar", ".txz", ".tar.xz" ],
+    "document":     [ ".docx", ".doc" ],
+    "image":        [ ".jpg", ".tif", ".jpeg", ".gif", ".bmp", ".png", ".tiff" ],
+    "markup":       [ ".html", ".htm" ],
+    "log":          [ ".log" ],
+    "pdf":          [ ".pdf" ],
+    "presentation": [ ".ppt", ".pptx" ],
+    "source code":  [ ".c", ".py", ".cpp", ".js", ".m", ".json", ".java", ".php", ".css" ],
+    "spreadsheet":  [ ".xls", ".xlsx" ],
+    "tabular data": [ ".csv.gz", ".csv" ],
+    "text":         [ ".txt" ],
+    "video":        [ ".mpeg", ".mpg", ".mov", ".mp4", ".m4v", ".mts" ]
+}
+
+
 def meta_create(outbase):
 
     # Default to gear output directory
     if not os.path.isdir(outbase):
         outbase = '/flywheel/v0/output'
-
-    # Build dict of types, which maps extensions to known data types
-    data_types = {
-        "archive":          [ ".zip", ".tbz2", ".tar.gz", ".tbz", ".tar.bz2", ".tgz", ".tar", ".txz", ".tar.xz" ],
-        "document":         [ ".docx", ".doc" ],
-        "image":            [ ".jpg", ".tif", ".jpeg", ".gif", ".bmp", ".png", ".tiff" ],
-        "pdf":              [ ".pdf" ],
-        "presentation":     [ ".ppt", ".pptx" ],
-        "markup":           [ ".html", ".htm" ],
-        "source code":      [ ".c", ".py", ".cpp", ".js", ".m", ".json", ".java", ".php", ".css" ],
-        "spredsheet":       [ ".xls", ".xlsx" ],
-        "tabular data":     [ ".csv.gz", ".csv" ],
-        "text":             [ ".txt" ],
-        "video":            [ ".mpeg", ".mpg", ".mov", ".mp4", ".m4v", ".MTS" ],
-        "qa":               [ ".qa.png", ".qa.json" ],
-        "bval":             [ ".bval", ".bvals" ],
-        "bvec":             [ ".bvec", ".bvecs" ],
-        "dicom":            [ ".dcm", ".dcm.zip", ".dicom.zip" ],
-        "gephysio":         [ ".gephysio.zip" ],
-        "nifti":            [ ".nii.gz", ".nii" ],
-        "pfile":            [ ".7.gz", ".7" ]
-    }
 
     # Build a dict of output file names and data types
     output_files = os.listdir(outbase)

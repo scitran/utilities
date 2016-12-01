@@ -89,7 +89,16 @@ def is_functional(label):
         re.compile('resting', re.IGNORECASE),
         re.compile('(?=.*rest)(?=.*state)', re.IGNORECASE),
         # NON-STANDARD
+        re.compile('(?=.*ret)(?=.*bars)', re.IGNORECASE),
+        re.compile('(?=.*ret)(?=.*wedges)', re.IGNORECASE),
+        re.compile('(?=.*ret)(?=.*rings)', re.IGNORECASE),
         re.compile('go-no-go', re.IGNORECASE),
+        re.compile('words', re.IGNORECASE),
+        re.compile('checkers', re.IGNORECASE),
+        re.compile('retinotopy', re.IGNORECASE),
+        re.compile('faces', re.IGNORECASE),
+        re.compile('rings', re.IGNORECASE),
+        re.compile('wedges', re.IGNORECASE),
         re.compile('emoreg', re.IGNORECASE),
         re.compile('conscious', re.IGNORECASE),
         re.compile('^REST$')
@@ -177,6 +186,13 @@ def is_phase_map(label):
         ]
     return regex_search_label(regexes, label)
 
+# Screen Save
+def is_screen_save(label):
+    regexes = [
+        re.compile('(?=.*screen)(?=.*save)', re.IGNORECASE)
+        ]
+    return regex_search_label(regexes, label)
+
 
 
 # Utility:  Check a list of regexes for truthyness
@@ -200,6 +216,8 @@ def infer_measurement(label):
     else:
         if is_anatomy_inplane(label):
             measurement = 'anatomy_inplane'
+        elif is_diffusion_derived(label):
+            measurement = 'diffusion_map'
         elif is_diffusion(label):
             measurement = 'diffusion'
         elif is_anatomy_t1(label):
@@ -210,8 +228,6 @@ def infer_measurement(label):
             measurement = 'anatomy_ir'
         elif is_functional(label):
             measurement = 'functional'
-        elif is_diffusion_derived(label):
-            measurement = 'diffusion_map'
         elif is_localizer(label):
             measurement = 'localizer'
         elif is_fieldmap(label):
@@ -219,7 +235,7 @@ def infer_measurement(label):
         elif is_shim(label):
             measurement = 'high_order_shim'
         elif is_calibration(label):
-            measurement = 'Calibration'
+            measurement = 'calibration'
         elif is_functional_derived(label):
             measurement = 'functional_map'
         elif is_coil_survey(label):
@@ -232,11 +248,13 @@ def infer_measurement(label):
             measurement = 'spectroscopy'
         elif is_phase_map(label):
             measurement = 'phase_map'
+        elif is_screen_save(label):
+            measurement = 'screen_save'
         else:
             measurement = 'unknown'
 
     # Check the measurement
-    #if measurement == 'unknown':
-    #    print label.strip('\n') + ' --->>>> ' + measurement
+    if measurement == 'unknown':
+        print label.strip('\n') + ' --->>>> ' + measurement
     return measurement
 

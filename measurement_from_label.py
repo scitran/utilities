@@ -92,6 +92,7 @@ def is_functional(label):
         re.compile('(?=.*ret)(?=.*bars)', re.IGNORECASE),
         re.compile('(?=.*ret)(?=.*wedges)', re.IGNORECASE),
         re.compile('(?=.*ret)(?=.*rings)', re.IGNORECASE),
+        re.compile('(?=.*ret)(?=.*check)', re.IGNORECASE),
         re.compile('go-no-go', re.IGNORECASE),
         re.compile('words', re.IGNORECASE),
         re.compile('checkers', re.IGNORECASE),

@@ -186,10 +186,12 @@ def is_phase_map(label):
         ]
     return regex_search_label(regexes, label)
 
-# Screen Save
-def is_screen_save(label):
+# Screen Save / Screenshot
+def is_screenshot(label):
     regexes = [
-        re.compile('(?=.*screen)(?=.*save)', re.IGNORECASE)
+        re.compile('(?=.*screen)(?=.*save)', re.IGNORECASE),
+        re.compile('.*screenshot', re.IGNORECASE),
+        re.compile('.*screensave', re.IGNORECASE)
         ]
     return regex_search_label(regexes, label)
 
@@ -248,8 +250,8 @@ def infer_measurement(label):
             measurement = 'spectroscopy'
         elif is_phase_map(label):
             measurement = 'phase_map'
-        elif is_screen_save(label):
-            measurement = 'screen_save'
+        elif is_screenshot(label):
+            measurement = 'screenshot'
         else:
             measurement = 'unknown'
 

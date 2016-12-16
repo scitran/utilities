@@ -119,6 +119,7 @@ def is_functional_derived(label):
 def is_localizer(label):
     regexes = [
         re.compile('localizer', re.IGNORECASE),
+        re.compile('localiser', re.IGNORECASE),
         re.compile('survey', re.IGNORECASE),
         re.compile('loc\.', re.IGNORECASE),
         re.compile(r'\bscout\b', re.IGNORECASE),
@@ -260,4 +261,3 @@ def infer_measurement(label):
     if measurement == 'unknown':
         print label.strip('\n') + ' --->>>> ' + measurement
     return measurement
-

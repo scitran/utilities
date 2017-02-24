@@ -91,7 +91,7 @@ for c in codes:
     db.sessions.update_many({'subject.code': c},{'$set':{'subject.firstname': first_name}})
     db.sessions.update_many({'subject.code': c},{'$set':{'subject.sex': sex}})
     db.sessions.update_many({'subject.code': c},{'$set':{'subject.age': age}})
-    db.sessions.update_many({'subject.code': c},{'$set':{'subject.metadata': metadata}})
+    db.sessions.update_many({'subject.code': c},{'$set':{'subject.info': metadata}})
     db.sessions.update_many({'subject.code': c},{'$set':{'subject.ethnicity': sEthnicity}})
     db.sessions.update_many({'subject.code': c},{'$set':{'subject.race': sRace}})
 

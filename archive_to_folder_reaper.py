@@ -141,18 +141,28 @@ def extract_dicoms(files):
 
 
 def extract_pfiles(files):
+    import zipfile
     pfile_arcs = [f for f in files if f.endswith('_pfile.tgz')]
     if pfile_arcs:
         log.info('... %s pfile archives to extract' % str(len(pfile_arcs)))
         for f in pfile_arcs:
             utd = untar(f, os.path.dirname(f))
             [_files, _dirs, _, _, _] = get_paths(utd)
-            [shutil.move(ff, os.path.dirname(utd)) for ff in _files if ff.endswith('.dat') or ff.endswith('_refscan.7')]
+            # Remove the files that should not be in the archive
+            del_files = ['._*', 'DIGEST.txt', 'METADATA.json', 'metadata.json', 'digest.txt']
+            for df in del_files:
+                [os.remove(d) for d in glob.glob(utd + '/' + df)]
+            # Gzip the P-file prior to adding to the archive
             for p in _files:
                 if p.endswith('.7') and not p.endswith('_refscan.7'):
-                    gzfile = create_gzip(p, p + '.gz')
-                    shutil.move(gzfile, os.path.dirname(utd))
-                    shutil.rmtree(utd)
+                    gzfile = create_gzip(p, os.path.join(utd, p + '.gz'))
+                    os.remove(p)
+
+            # Zip the utd directory
+            zipdir(utd, utd + '.7.zip', os.path.basename(utd))
+
+            # Clean up the directory and files
+            shutil.rmtree(utd)
             os.remove(f)
         log.info('... done')
     else:
@@ -236,13 +246,26 @@ def untar(fname, path):
     return untar_dir
 
 
-def create_archive(content, arcname):
-    path = content + '.zip'
-    with zipfile.ZipFile(path, 'w', zipfile.ZIP_DEFLATED, allowZip64=True) as zf:
-        zf.write(content, arcname)
-        for fn in os.listdir(content):
-            zf.write(os.path.join(content, fn), os.path.join(os.path.basename(arcname), fn))
-    return path
+def create_archive(content_dir, arcname):
+    zipfilepath = content_dir + '.zip'
+    with zipfile.ZipFile(zipfilepath, 'w', zipfile.ZIP_DEFLATED, allowZip64=True) as zf:
+        zf.write(content_dir, arcname)
+        for fn in os.listdir(content_dir):
+            zf.write(os.path.join(content_dir, fn), os.path.join(os.path.basename(arcname), fn))
+    return zipfilepath
+
+
+def zipdir(dirpath, zipname=None, arcbase=None):
+    if not arcbase:
+        arcbase = os.path.basename(dirpath)
+    if not zipname:
+        zipname = dirpath + '.zip'
+    zipf = zipfile.ZipFile(zipname, 'w', zipfile.ZIP_DEFLATED, allowZip64=True)
+    for root, dirs, files in os.walk(dirpath):
+        for _file in files:
+            zipf.write(os.path.join(root, _file), os.path.join(arcbase, _file))
+    zipf.close()
+    return zipname
 
 
 def create_gzip(in_file, gz_file):
@@ -387,4 +410,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

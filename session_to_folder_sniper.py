@@ -4,17 +4,15 @@
 #TODO: Better documentation
 
 """
-SciTran NIMS and SDM archive to folder Reaper conversion utility.
+SciTran NIMS and SDM session to folder sniper conversion utility.
 
-This code will convert a NIMS v1.0 or an SDM tar file (including the DICOMS) to a folder
-tree that the SciTran folder_reaper can ingest.
+This code will convert a NIMS v1.0 session to a folder
+tree that the SciTran folder_sniper can ingest.
 
 Users can optionally pass in group, project, and subject arguments. If these
 arguments are not passed in they are gleaned from the folder structure within
-the NIMS archive.
+the NIMS archive or read from the DICOM header.
 
-example usage:
-    archive_to_folder_reaper.py /path/to/directory /path/to/place/the/output
 
 """
 
@@ -50,6 +48,7 @@ def extract_subject_id(root_path, args):
     '''
     log.info('No subjectID provided - Attempting to extract subject ID from dicom...')
     subject_id = None
+    study_id = None
 
     (file_paths, dir_paths, _, _, _) = get_paths(root_path)
     dicom_dirs = [d for d in dir_paths if d.endswith('dicom')]
@@ -58,6 +57,7 @@ def extract_subject_id(root_path, args):
     if dicom_dirs:
         dicom_files = [d for d in file_paths if d.startswith(dicom_dirs[0])]
         dcm = dicom.read_file(dicom_files[0])
+        study_id = dcm.StudyID
 
         # Use the field that was passed in
         if args.subject_id_field and dcm.get(args.subject_id_field):
@@ -70,15 +70,6 @@ def extract_subject_id(root_path, args):
                 subject_id = subject_id.split('@')[0]
                 if '/' in subject_id:# If the group/is still in the name then no subjectID was entered
                     subject_id = None
-
-        # Use the PatientName field
-        if not subject_id and dcm.PatientName:
-            subject_id = dcm.PatientName.replace('^',' ')
-            if subject_id[0] == ' ': # If the first char is a space, remove it
-                subject_id = subject_id[1:]
-            if subject_id.find(' ') > 0:
-                subject_id = None
-            # FIXME: This could be a proper name (remove it)
 
         # Use StudyID
         if not subject_id and dcm.StudyID:
@@ -93,7 +84,7 @@ def extract_subject_id(root_path, args):
     subject_id = subject_id.replace(os.sep, '_')
 
     log.info('... subjectID set to %s' % subject_id)
-    return subject_id
+    return subject_id, study_id
 
 
 def screen_save_montage(dirs):
@@ -199,6 +190,7 @@ def extract_physio(files):
 
 def prune_tree(files, args):
     if args.prune:
+        print args.prune
         log.debug('Pruning files that end with %s ' % args.prune)
         for p in args.prune:
             for f in files:
@@ -279,10 +271,10 @@ def create_gzip(in_file, gz_file):
 ######################################################################################
 def main():
     arg_parser = argparse.ArgumentParser()
-    arg_parser.add_argument('nimsfs_session_dir', help='NIMSfs directory', type=str)
-    arg_parser.add_argument('group', help='Group', type=str, default='')
-    arg_parser.add_argument('project', help='project', type=str, default='')
-    arg_parser.add_argument('output_path', help='path for untar data', type=str)
+    arg_parser.add_argument('-d', '--nimsfs_session_dir', help='NIMSfs raw directory', type=str)
+    arg_parser.add_argument('-g', '--group', help='Group', type=str)
+    arg_parser.add_argument('-p', '--project', help='project', type=str)
+    arg_parser.add_argument('-o', '--output_path', help='path for untar data', type=str)
     arg_parser.add_argument('-s', '--subject', help='Subject Code', type=str, default='')
     arg_parser.add_argument('-i', '--subject_id_field', help='Look here for the subject id', type=str, default='')
     arg_parser.add_argument('-l', '--loglevel', default='info', help='log level [default=info]')
@@ -293,8 +285,8 @@ def main():
     log.setLevel(getattr(logging, args.loglevel.upper()))
     log.debug(args)
 
-    # Output directory will be named with the current date and time
-    output_path = os.path.join(os.path.realpath(args.output_path), time.strftime('%Y-%m-%d_%H_%M_%S'))
+    # Output directory where the repackaged data will be written
+    output_path = os.path.join(os.path.realpath(args.output_path))
 
 
     ## 1. Make the output directory where the session will be copied
@@ -302,9 +294,8 @@ def main():
     os.makedirs(output_deep_path)
 
 
-    ## 2. Extract the nims tar file
+    ## 2. Replicate session tree for conversion
     log.info('Converting %s to %s' % (args.nimsfs_session_dir, output_path))
-    # untar(args.tar_file, output_path)
     # TODO right now this will copy the data to the output_deep_path, but that is not at all what we want to do.
     copy_tree(args.nimsfs_session_dir, output_deep_path)
 
@@ -351,9 +342,12 @@ def main():
                 log.debug(project)
                 log.debug(args)
 
-                ## 5. Remove the 'qa.json' files (UI can't read them) #TODO ???
+                ## 5. Remove the 'qa.json' files (UI can't read them)
+                #TODO Should we do this???
+                # Prune tree to remove unwanted files
+                prune_tree(file_paths, args)
                 for f in file_paths:
-                    if f.endswith('qa.json'):
+                    if f.endswith('qa.json') or f.endswith('.pyrdb'):
                         os.remove(f)
 
                 ## 6. Rename: qa file to [...].qa.png and montage to .montage.zip
@@ -386,20 +380,21 @@ def main():
                 screen_save_montage(dir_paths)
 
                 ## 12. Get the subjectID (if not passed in)
+                extracted_subject_id, extracted_study_id = extract_subject_id(session, args)
                 if get_subject_id == True:
-                    args.subject = extract_subject_id(session, args)
+                    args.subject = extracted_subject_id
 
-                ## 13. Prune tree to remove unwanted files
-                prune_tree(file_paths, args)
-
-                ## 14. Make the folder hierarchy and move the session to it's right place
+                ## 13. Make the folder hierarchy and move the session to it's right place
                 log.info('Organizing final file structure...')
                 target_path = os.path.join(output_path, args.group, args.project, args.subject)
                 log.debug('Target Path: %s' % target_path)
-                log.debug(session)
+                log.debug('Session Path: %s' % session)
                 if not os.path.isdir(target_path):
                     os.makedirs(target_path)
                 shutil.move(session, target_path) # Move the session to the target
+                if extracted_study_id:
+                    log.info('Renaming final folder structure: %s' % os.path.join(target_path, extracted_study_id))
+                    os.rename(os.path.join(target_path, os.path.basename(session)), os.path.join(target_path, extracted_study_id))
 
 
     ## 15. Remove the db root folder

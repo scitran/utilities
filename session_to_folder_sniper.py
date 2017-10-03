@@ -1,10 +1,9 @@
-#!/usr/local/bin/python
+#! /usr/bin/env python
 # -*- coding: utf-8 -*-
 
-#TODO: Better documentation
 
 """
-SciTran NIMS and SDM session to folder sniper conversion utility.
+NIMSFS session to folder sniper conversion utility.
 
 This code will convert a NIMS v1.0 session to a folder
 tree that the SciTran folder_sniper can ingest.
@@ -92,21 +91,26 @@ def screen_save_montage(dirs):
     if screen_saves:
         log.info('... %s screen saves to process' % str(len(screen_saves)))
         for d in screen_saves:
-            pngs = glob.glob(d + '/*.png')
-            montage_name = pngs[0][:-5] + 'montage.png'
-            pngs = [shellquote(p) for p in pngs]
+            orig_pngs = glob.glob(d + '/*.png')
+            montage_name = orig_pngs[0][:-5] + 'ScreenSave.png'
+            pngs = [shellquote(p) for p in orig_pngs]
             # Build the montage (requires imagemagick)
             os.system('montage -geometry +4+4 ' + " ".join(pngs) + ' ' + shellquote(montage_name))
             # Move the contents of this folder to the correct acquitision directory
-            ss_num = os.path.basename(d).split('_')[0][-2:] # This is the acquisition number we need
+            ss_num = os.path.basename(d).split('_')[1][-2:] # This is the acquisition number we need
             if ss_num[0] == '0': # Drop the leading zero if it's the first char
                 ss_num = ss_num[1:]
             for target in dirs:
-                if os.path.basename(target).startswith(ss_num + '_'):
+                target_dir=False
+                if os.path.basename(target).split('_')[1] == ss_num:
                     target_dir = target
                     break
-            shutil.move(montage_name, target_dir)
-            shutil.rmtree(d) # Remove the screen save folder
+            if target_dir:
+                shutil.move(montage_name, target_dir)
+                shutil.rmtree(d) # Remove the screen save folder
+            else:
+                log.info("No matching acquisition found... keeping only the montage.")
+                [os.remove(x) for x in orig_pngs]
         log.info('... done')
     else:
         log.info('... 0 screen saves found')
@@ -122,7 +126,7 @@ def extract_dicoms(files):
             for df in del_files:
                 [os.remove(d) for d in glob.glob(utd + '/' + df)]
             log.debug('renaming %s' % utd)
-            # BUG:TODO: This can be an issue if there is more than one dicom archive per acquisition (see ex9407 on SNI-SDM)
+            # TODO: This can be an issue if there is more than one dicom archive per acquisition
             os.rename(utd, os.path.join(os.path.dirname(utd), 'dicom'))
             os.remove(f)
             log.debug('Removing %s' % f)
@@ -139,7 +143,7 @@ def extract_pfiles(files):
         for f in pfile_arcs:
             utd = untar(f, os.path.dirname(f))
             [_files, _dirs, _, _, _] = get_paths(utd)
-            # Remove the files that should not be in the archive
+            # TODO: Remove the files that should not be in the archive
             del_files = ['._*', 'DIGEST.txt', 'METADATA.json', 'metadata.json', 'digest.txt']
             for df in del_files:
                 [os.remove(d) for d in glob.glob(utd + '/' + df)]

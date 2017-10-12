@@ -144,14 +144,14 @@ def extract_pfiles(files):
             # Untar to RAMDISK
             utd = untar(f, '/run/shm')
             [_files, _dirs, _, _, _] = get_paths(utd)
-            # TODO: Remove the files that should not be in the archive
+            # Remove the files that should not be in the archive
             del_files = ['._*', 'DIGEST.txt', 'METADATA.json', 'metadata.json', 'digest.txt']
             for df in del_files:
                 [os.remove(d) for d in glob.glob(utd + '/' + df)]
             # Gzip the P-file prior to adding to the archive
             for p in _files:
                 if p.endswith('.7') and not p.endswith('_refscan.7'):
-                    gzip_cmd = 'gzip ' + p
+                    gzip_cmd = 'pigz ' + p
                     os.system(gzip_cmd)
             # Zip the utd directory
             zipdir(utd, utd + '.7.zip', os.path.basename(utd))

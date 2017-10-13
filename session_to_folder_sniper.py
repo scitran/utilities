@@ -20,6 +20,7 @@ import sys
 import time
 import glob
 import gzip
+import tqdm
 import dicom
 import shutil
 import zipfile
@@ -90,7 +91,7 @@ def screen_save_montage(dirs):
     screen_saves = [f for f in dirs if f.endswith('Screen_Save')]
     if screen_saves:
         log.info('... %s screen saves to process' % str(len(screen_saves)))
-        for d in screen_saves:
+        for d in tqdm(screen_saves):
             orig_pngs = glob.glob(d + '/*.png')
             montage_name = orig_pngs[0][:-5] + 'ScreenSave.png'
             pngs = [shellquote(p) for p in orig_pngs]
@@ -120,7 +121,7 @@ def extract_dicoms(files):
     dicom_arcs = [f for f in files if f.endswith('_dicoms.tgz') or f.endswith('_dicom.tgz')]
     if dicom_arcs:
         log.info('... %s dicom archives to extract' % str(len(dicom_arcs)))
-        for f in dicom_arcs:
+        for f in tqdm(dicom_arcs):
             utd = untar(f, os.path.dirname(f))
             del_files = ['._*', 'DIGEST.txt', 'METADATA.json', 'metadata.json', 'digest.txt']
             for df in del_files:
@@ -140,7 +141,7 @@ def extract_pfiles(files):
     pfile_arcs = [f for f in files if f.endswith('_pfile.tgz')]
     if pfile_arcs:
         log.info('... %s pfile archives to extract' % str(len(pfile_arcs)))
-        for f in pfile_arcs:
+        for f in tqdm(pfile_arcs):
             # Untar to RAMDISK
             utd = untar(f, '/run/shm')
             [_files, _dirs, _, _, _] = get_paths(utd)
@@ -169,7 +170,7 @@ def extract_and_zip_physio(files):
     physio_arcs = [f for f in files if f.endswith('_physio.tgz')]
     if physio_arcs:
         log.info('... %s physio archives to extract' % str(len(physio_arcs)))
-        for f in physio_arcs:
+        for f in tqdm(physio_arcs):
             utd = untar(f, os.path.dirname(f))
             create_archive(utd, utd)
             os.rename(utd + '.zip', utd + '.gephysio.zip')
@@ -184,7 +185,7 @@ def extract_physio(files):
     physio_arcs = [f for f in files if f.endswith('.csv.gz')]
     if physio_arcs:
         log.info('... %s physio regressor file(s) to extract' % str(len(physio_arcs)))
-        for f in physio_arcs:
+        for f in tqdm(physio_arcs):
             with gzip.open(f, 'rb') as in_file:
                 s = in_file.read()
                 with open(f[:-3], 'w') as a:

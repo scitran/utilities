@@ -154,7 +154,7 @@ def extract_pfiles(files):
                     gzip_cmd = 'pigz ' + p
                     os.system(gzip_cmd)
             # Zip the utd directory
-            zipdir(utd, utd + '.7.zip', os.path.basename(utd))
+            zipdir(utd, utd + '.7.zip', os.path.basename(utd), False)
             shutil.move(utd + '.7.zip', os.path.dirname(f))
 
             # Clean up the directory and files
@@ -252,12 +252,18 @@ def create_archive(content_dir, arcname):
     return zipfilepath
 
 
-def zipdir(dirpath, zipname=None, arcbase=None):
+def zipdir(dirpath, zipname=None, arcbase=None, deflate=True):
+    import os
+    import zipfile
+    if deflate:
+        mode = zipfile.ZIP_DEFLATED
+    else:
+        mode = zipfile.ZIP_STORED
     if not arcbase:
         arcbase = os.path.basename(dirpath)
     if not zipname:
         zipname = dirpath + '.zip'
-    zipf = zipfile.ZipFile(zipname, 'w', zipfile.ZIP_DEFLATED, allowZip64=True)
+    zipf = zipfile.ZipFile(zipname, 'w', mode, allowZip64=True)
     for root, dirs, files in os.walk(dirpath):
         for _file in files:
             zipf.write(os.path.join(root, _file), os.path.join(arcbase, _file))

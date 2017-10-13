@@ -20,7 +20,7 @@ import sys
 import time
 import glob
 import gzip
-import tqdm
+from tqdm import tqdm
 import dicom
 import shutil
 import zipfile
@@ -28,6 +28,7 @@ import tarfile
 import logging
 import argparse
 import subprocess
+from tqdm import tqdm
 from distutils.dir_util import copy_tree
 
 

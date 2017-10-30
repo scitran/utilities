@@ -103,6 +103,9 @@ def is_functional(label):
         re.compile('emoreg', re.IGNORECASE),
         re.compile('conscious', re.IGNORECASE),
         re.compile('^REST$')
+        re.compile('ep2d', re.IGNORECASE),
+        re.compile('_task_', re.IGNORECASE),
+        re.compile('_rest_', re.IGNORECASE),
         ]
     return regex_search_label(regexes, label)
 

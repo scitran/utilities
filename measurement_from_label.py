@@ -27,6 +27,7 @@ def is_anatomy_t1(label):
     regexes = [
         re.compile('(?=.*t1)(?![inplane])', re.IGNORECASE),
         re.compile('(?=.*3d anat)(?![inplane])', re.IGNORECASE),
+        re.compile('(?=.*3d)(?=.*bravo)(?![inplane])', re.IGNORECASE),
         re.compile('spgr', re.IGNORECASE),
         re.compile('tfl', re.IGNORECASE),
         re.compile('mprage', re.IGNORECASE),

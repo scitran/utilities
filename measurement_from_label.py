@@ -106,7 +106,8 @@ def is_functional(label):
         re.compile('^REST$'),
         re.compile('ep2d', re.IGNORECASE),
         re.compile('_task_', re.IGNORECASE),
-        re.compile('_rest_', re.IGNORECASE)
+        re.compile('_rest_', re.IGNORECASE),
+        re.compile('fBIRN', re.IGNORECASE)
         ]
     return regex_search_label(regexes, label)
 
@@ -130,7 +131,8 @@ def is_localizer(label):
         re.compile('(?=.*plane)(?=.*loc)', re.IGNORECASE),
         re.compile('(?=.*plane)(?=.*survey)', re.IGNORECASE),
         re.compile('3-plane', re.IGNORECASE),
-        re.compile('^loc*', re.IGNORECASE)
+        re.compile('^loc*', re.IGNORECASE),
+        re.compile('Scout', re.IGNORECASE)
         ]
     return regex_search_label(regexes, label)
 
